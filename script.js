@@ -1,12 +1,13 @@
 import Engine from './Engine.js'
 
-// DOC ELEMENTS
+// GET DOC ELEMENTS
 const counter = document.querySelector('.counter')
-const ui = document.querySelector('.ui')
+const log = document.querySelector('.log')
 
   
-// MAIN
-// timer(counter)
-const game = new Engine(counter)
+// START A GAME
+const game = new Engine(counter, log, 4)
 game.start()
-console.log('Executing other stuff')
+
+// Listen for local player play
+document.addEventListener("keydown", (e) => {game.play(0,e.key)})
