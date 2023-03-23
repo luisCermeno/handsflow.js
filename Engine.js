@@ -1,40 +1,34 @@
 export default class Engine{
   // CONSTRUCTOR
-  constructor(output,log,n_players){
-    this.output = output
-    this.log = log
-    this.turn = 0
+  constructor(n_players){
     this.n_players = n_players
+    this.turn = 0
     this.gameover = false
-    console.log(`New engine constructed with ${output}`)
+    this.onupdate = (new_state) => {console.log(`New state: ${new_state}`)}
+    this.onplay = (player,play) => {console.log(`Player ${player} played ${play}`)}
   }
 
   // HELPER PRIVATE METHODS
-  sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
+  sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
+  
   async run() {
     console.log('Game started')
     // Print first turn
     // Start game loop
     while (this.gameover == false) {
       this.turn = (this.turn + 1) % this.n_players
-      this.output.innerHTML = this.turn.toString()
-      await this.sleep(1000)
+      this.onupdate(this.turn)
+      await this.sleep(2000)
     }
-    this.output.innerHTML = 'Game Over'
   }
 
   // PUBLIC METHODS
-  play(player, move) {
+  play(player, play) {
     if (this.gameover) {
       return
     }
     // Log the play
-    const new_log = document.createElement('div')
-    new_log.innerHTML = `Player ${player} played ${move}`
-    this.log.append(new_log)
+    this.onplay(player,play)
 
     // Check for gameover
     if (this.turn != player) {
