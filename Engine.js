@@ -6,6 +6,7 @@ export default class Engine{
       plays_obj[i] = false
     }
 
+    this.plays = plays_obj
     this.gamestate = {
       n_players: n_players,
       turn: 0,
@@ -13,7 +14,8 @@ export default class Engine{
       plays: plays_obj
     }
     
-    this.onupdate = (new_state) => {}
+    this.onupdate = () => {}
+    this.onplay = () => {}
   }
 
 
@@ -23,6 +25,10 @@ export default class Engine{
     this.onupdate(new_state)
     this.gamestate = new_state
   }
+  update_plays(player,play) {
+    this.onplay(player,play)
+    this.plays = {...this.plays, [player]: play}
+  }
 
   // PUBLIC METHODS
   play(player, play) {
@@ -30,7 +36,7 @@ export default class Engine{
       return
     }
     // Log the play
-    this.update({...this.gamestate, plays: {...this.gamestate.plays, [player]: true}})
+    this.update_plays(player,true)
     // Check for gameover
     if (this.gamestate.turn != player) {
       this.update({...this.gamestate, gameover: true})
@@ -46,8 +52,8 @@ export default class Engine{
         this.play(player,'2')
       }
       // CHECK for play recorded in gamestate. Reset to false if found
-      if (this.gamestate.plays[player] == true) {
-        this.gamestate = {...this.gamestate, plays: {...this.gamestate.plays, [player]: false}}
+      if (this.plays[player] == true) {
+        this.plays = {...this.plays, [player] : false}
         hasplayed = true
       }
       // Wait one ms and continue

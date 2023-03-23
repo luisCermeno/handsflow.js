@@ -5,18 +5,19 @@ const gamestate = document.querySelector('.gamestate')
 const log = document.querySelector('.log')
 
 // UI HANDLERS
-function updateUI (state) {
+function update_UI (state) {
   if (state.gameover == true) {
     gamestate.innerHTML = 'GAMEOVER!'
   } else{
     gamestate.innerHTML = state.turn.toString()
   }
-  // LOG PLAYS STATE TO CONSOLE
-  let new_log = 'Plays: '
-  for(const [k, v] of Object.entries(state.plays)) {
-    new_log = new_log + `[${k}:${v}]`
-  }console.log(new_log)
+  
 }
+
+function update_log(player,play) {
+  console.log(`Player ${player} played ${play}`)
+}
+
 // function updatelog(player,play) {
 //   const new_log = document.createElement('div')
 //   new_log.innerHTML = `Player ${player} played ${play}`
@@ -25,7 +26,9 @@ function updateUI (state) {
 
 // START A GAME
 const game = new Engine(4)
-game.onupdate = updateUI
+game.onupdate = update_UI
+game.onplay = update_log
+
 // game.onplay = updatelog
 game.start()
 
