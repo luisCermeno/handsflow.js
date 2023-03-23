@@ -11,16 +11,20 @@ export default class Engine{
       n_players: n_players,
       turn: 0,
       gameover: false,
-      plays: plays_obj
     }
     
     this.onupdate = () => {}
     this.onplay = () => {}
+    this.moves = [-1,1,2]
   }
 
 
   // HELPER PRIVATE METHODS
   sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
+  getRandomInt = max => Math.floor(Math.random() * max); // max not inclusive
+  mod = (n,m) => ((n % m) + m) % m
+  generate_play = () => this.moves[this.getRandomInt(this.moves.length)]
+
   update(new_state) {
     this.onupdate(new_state)
     this.gamestate = new_state
@@ -29,51 +33,54 @@ export default class Engine{
     this.onplay(player,play)
     this.plays = {...this.plays, [player]: play}
   }
+  
 
   // PUBLIC METHODS
   play(player, play) {
     if (this.gamestate.gameover == true) {
       return
     }
-    // Log the play
-    this.update_plays(player,true)
     // Check for gameover
-    if (this.gamestate.turn != player) {
+    if (play == null || this.gamestate.turn != player) {
       this.update({...this.gamestate, gameover: true})
     }
+    // Log the play
+    this.update_plays(player,play)
+
   }
 
   waitplay = player => new Promise(async resolve => {
     let ms = 0
-    let hasplayed = false
-    while (hasplayed == false & ms < 500) {
+    let play = 0
+    while (play == 0 & ms < 500) {
       // AI always plays after half the time allowed
       if (ms > 250 & player != 0) {
-        this.play(player,'2')
+        this.play(player, this.generate_play())
       }
       // CHECK for play recorded in gamestate. Reset to false if found
-      if (this.plays[player] == true) {
-        this.plays = {...this.plays, [player] : false}
-        hasplayed = true
+      if (this.plays[player] != 0) {
+        play = this.plays[player]
+        this.plays = {...this.plays, [player] : 0}
       }
       // Wait one ms and continue
       await this.sleep(1)
       ms = ms + 1
     }
     // After time allowed is done, return whether player has player or not
-    resolve(hasplayed) 
+    resolve(play) 
   })
   
   async start() {
     console.log('Game started')
     // Print first turn
     // Start game loop
+    let curr_play = 1
     while (this.gamestate.gameover == false) {
-      this.update({...this.gamestate, turn: (this.gamestate.turn + 1) % this.gamestate.n_players})
+      this.update({...this.gamestate, turn: this.mod(this.gamestate.turn + curr_play, this.gamestate.n_players) })
       // Wait for play
-      let hasplayed = await this.waitplay(this.gamestate.turn)
+      curr_play = await this.waitplay(this.gamestate.turn)
       // After waiting for play, gameover is user didnt play (TODO: remove one hand!)
-      if (hasplayed == false) {
+      if (curr_play == 0) {
         this.update({...this.gamestate, gameover: true})
       }
     }
