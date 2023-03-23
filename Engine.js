@@ -13,16 +13,15 @@ export default class Engine{
       plays: plays_obj
     }
     
-    this.onupdate = (new_state) => {console.log(`New state: ${new_state}`)}
-    this.onplay = (player,play) => {console.log(`Player ${player} played ${play}`)}
+    this.onupdate = (new_state) => {}
   }
 
 
   // HELPER PRIVATE METHODS
   sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
   update(new_state) {
-    this.gamestate = new_state
     this.onupdate(new_state)
+    this.gamestate = new_state
   }
 
   // PUBLIC METHODS
@@ -31,7 +30,6 @@ export default class Engine{
       return
     }
     // Log the play
-    this.onplay(player,play)
     this.update({...this.gamestate, plays: {...this.gamestate.plays, [player]: true}})
     // Check for gameover
     if (this.gamestate.turn != player) {
@@ -39,15 +37,39 @@ export default class Engine{
     }
   }
 
+  waitplay = player => new Promise(async resolve => {
+    let ms = 0
+    let hasplayed = false
+    while (hasplayed == false & ms < 500) {
+      // AI always plays after half the time allowed
+      if (ms > 250 & player != 0) {
+        this.play(player,'2')
+      }
+      // CHECK for play recorded in gamestate. Reset to false if found
+      if (this.gamestate.plays[player] == true) {
+        this.gamestate = {...this.gamestate, plays: {...this.gamestate.plays, [player]: false}}
+        hasplayed = true
+      }
+      // Wait one ms and continue
+      await this.sleep(1)
+      ms = ms + 1
+    }
+    // After time allowed is done, return whether player has player or not
+    resolve(hasplayed) 
+  })
+  
   async start() {
     console.log('Game started')
     // Print first turn
     // Start game loop
     while (this.gamestate.gameover == false) {
       this.update({...this.gamestate, turn: (this.gamestate.turn + 1) % this.gamestate.n_players})
-      await this.sleep(2000) // TODO: await for checkplay!!s
-
+      // Wait for play
+      let hasplayed = await this.waitplay(this.gamestate.turn)
+      // After waiting for play, gameover is user didnt play (TODO: remove one hand!)
+      if (hasplayed == false) {
+        this.update({...this.gamestate, gameover: true})
+      }
     }
   }
-
 }

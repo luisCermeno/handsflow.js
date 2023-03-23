@@ -6,13 +6,16 @@ const log = document.querySelector('.log')
 
 // UI HANDLERS
 function updateUI (state) {
-  gamestate.innerHTML = state.turn.toString()
+  if (state.gameover == true) {
+    gamestate.innerHTML = 'GAMEOVER!'
+  } else{
+    gamestate.innerHTML = state.turn.toString()
+  }
+  // LOG PLAYS STATE TO CONSOLE
   let new_log = 'Plays: '
-
   for(const [k, v] of Object.entries(state.plays)) {
     new_log = new_log + `[${k}:${v}]`
-  }
-  log.innerHTML = new_log
+  }console.log(new_log)
 }
 // function updatelog(player,play) {
 //   const new_log = document.createElement('div')
