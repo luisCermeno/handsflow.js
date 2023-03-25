@@ -12,7 +12,7 @@ export default class Engine{
       gamepaused: true,
       gameover: false,
     }
-    this.waittime = 1000
+    this.waittime = waittime
     this.bots = this.tools.construct_bots(n_players, this)
     this.moves = [-1,1,2]
     this.onupdate = () => {}
@@ -33,15 +33,21 @@ export default class Engine{
     this.onplay(id,play)
     this.plays = {...this.plays, [id]: play}
   }
+  pause(){
+    this.update({...this.gamestate, index: 0, gamepaused: true}) // todo: remove player
+  }
+  valid_play(play) {
+    return (play != null) & (play != 0)
+  }
   
 
   // PUBLIC METHODS
   play(id, play) {
     // Log the play
     this.update_plays(id,play)
-    // Check for wrongplay
-    if (play == null || this.gamestate.players[this.gamestate.index] != id) {
-      this.update({...this.gamestate, index: 0, gamepaused: true}) // todo: remove player
+    // Check for wrong turn!
+    if (this.gamestate.players[this.gamestate.index] != id) {
+      this.pause()
     }
     
   }
@@ -84,18 +90,15 @@ export default class Engine{
     // Start game loop
     // Request play to the first alive player (at index 0)
     while (this.gamestate.gameover == false) {
+      // Request kick off play after a pause or at start.
       let curr_play = await this.request_play(this.gamestate.index)
-      while (curr_play != null & curr_play != 0 & this.gamestate.gamepaused == false) {
+      while (this.valid_play(curr_play) & this.gamestate.gamepaused == false) {
         let new_turn = this.tools.mod(this.gamestate.index + curr_play, this.gamestate.n_players)
         this.update({...this.gamestate, index: new_turn})
         // Listen for next play for {waittime} milliseconds
         curr_play = await this.listen_play(this.gamestate.index, this.waittime)
-        // If play was not recorded, kill the player and break the loop (pause game)
-        if (curr_play == 0) {
-          break
-        }
       }
-      this.update({...this.gamestate, index: 0, gamepaused: true}) // todo: remove player
+      this.pause()
     }
   }
 }
