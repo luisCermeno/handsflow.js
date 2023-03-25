@@ -19,7 +19,7 @@ function update_UI (state) {
   if (state.gamepaused == true) {
     gamestate.innerHTML = 'GAME PAUSED!'
   } else{
-    gamestate.innerHTML = state.turn.toString()
+    gamestate.innerHTML = state.index.toString()
   }
   
 }
