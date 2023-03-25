@@ -2,9 +2,13 @@ import Bot from "./bot.js";
 
 export default class Tools{
   sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
-  randint = max => Math.floor(Math.random() * max); // max not inclusive
+  randint(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
+  }
   mod = (n,m) => ((n % m) + m) % m
-  generate_play = (moves) => moves[this.randint(moves.length)]
+  generate_play = (moves) => moves[this.randint(0, moves.length)]
   construct_plays = (n_players) => {
     var plays_obj = {}
     for(let i = 0; i < n_players; i++){

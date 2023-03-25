@@ -11,11 +11,11 @@ export default class Engine{
       turn: 0,
       gameover: false,
     }
-    this.waittime = 500
+    this.waittime = 1000
     this.bots = this.tools.construct_bots(n_players, this)
+    this.moves = [-1,1,2]
     this.onupdate = () => {}
     this.onplay = () => {}
-    this.moves = [-1,1,2]
   }
 
 
@@ -42,50 +42,47 @@ export default class Engine{
     }
     // Log the play
     this.update_plays(id,play)
-
     // Check for wrongplay
     if (play == null || this.gamestate.turn != id) {
       this.update({...this.gamestate, gameover: true}) // todo: remove player
     }
     
-
   }
 
-  waitplay(turn, waittime) {
+  listen_play(turn) {
     return new Promise(async resolve => {
       let ms = 0
-      let play = 0
+      let move = 0
+      // Get expected player's id. 
       let id = this.gamestate.players[turn]
-      while (play == 0 & ms < waittime) {
-        // AI always plays after half the time allowed
-        if (ms > (waittime / 2) & id != 0) {
-          this.play(turn, this.tools.generate_play(this.moves))
-        }
-        // CHECK for play recorded in gamestate. Reset to false if found
+      // Check every millisecond until waittime.
+      while (move == 0 & ms < this.waittime) {
+        // If play was recorded in gamestate, player has played!
         if (this.plays[id] != 0) {
-          play = this.plays[id]
+          // Save the move before resetting
+          move = this.plays[id]
+          // Reset the state
           this.plays = {...this.plays, [id] : 0}
         }
-        // Wait one ms and continue
+        // Wait one ms before next check
         await this.tools.sleep(1)
         ms = ms + 1
       }
-      // After time allowed is done, return whether player has player or not
-      resolve(play)
+      // Return the played move. (0 if no move recorded.)
+      resolve(move)
     })
   }
   
   async start() {
     console.log('Game started')
-    // Print first turn
     // Start game loop
     let curr_play = 1
     while (this.gamestate.gameover == false) {
       let new_turn = this.tools.mod(this.gamestate.turn + curr_play, this.gamestate.n_players)
       this.update({...this.gamestate, turn: new_turn})
-      // Wait for play
-      curr_play = await this.waitplay(this.gamestate.turn, 500)
-      // After waiting for play
+      // Listen for next play for {waittime} milliseconds
+      curr_play = await this.listen_play(this.gamestate.turn)
+      // After waiting for play, go to next round or remove player and pause the game.
       if (curr_play == 0) {
         this.update({...this.gamestate, gameover: true}) // todo: remove player
       }
