@@ -1,3 +1,5 @@
+import Bot from "./bot.js";
+
 export default class Tools{
   sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
   randint = max => Math.floor(Math.random() * max); // max not inclusive
@@ -16,5 +18,12 @@ export default class Tools{
       players_l.push(id)
     }
     return players_l
+  }
+  construct_bots = (n_players, game) => {
+    var bots = {}
+    for(let id = 1; id < n_players; id++){
+      bots[id] = new Bot(id, game)
+    }
+    return bots
   }
 }

@@ -37,7 +37,7 @@ function update_log(id,play) {
 
 
 // START A GAME
-const game = new Engine(4)
+const game = new Engine(4, 500)
 game.onupdate = update_UI
 game.onplay = update_log
 
