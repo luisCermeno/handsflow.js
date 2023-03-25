@@ -1,4 +1,4 @@
-import Engine from './Engine.js'
+import Engine from './engine.js'
 
 // GET DOC ELEMENTS
 const gamestate = document.querySelector('.gamestate')
@@ -24,23 +24,17 @@ function update_UI (state) {
   
 }
 
-function update_log(player,play) {
+function update_log(id,play) {
   let newlog = document.createElement('div')
   let parsed_play = moves[play]
   if (parsed_play == null) {
-    newlog.innerHTML = `Player ${player} played a Wrong Key!`
+    newlog.innerHTML = `Player ${id} played a Wrong Key!`
   } else {
-    newlog.innerHTML = `Player ${player} played ${parsed_play}`
+    newlog.innerHTML = `Player ${id} played ${parsed_play}`
   }
   log.appendChild(newlog)
 }
 
-
-// function updatelog(player,play) {
-//   const new_log = document.createElement('div')
-//   new_log.innerHTML = `Player ${player} played ${play}`
-//   log.append(new_log)
-// };
 
 // START A GAME
 const game = new Engine(4)

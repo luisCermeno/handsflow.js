@@ -1,21 +1,16 @@
+import Tools from './tools.js'
+
 export default class Engine{
   // CONSTRUCTOR
   constructor(n_players){
-    var plays_obj = {}
-    var players_l = []
-    for(let id = 0; id < n_players; id++){
-      plays_obj[id] = false
-      players_l.push(id)
-    }
-
-    this.plays = plays_obj
+    this.tools = new Tools()
+    this.plays = this.tools.construct_plays(n_players)
     this.gamestate = {
       n_players: n_players,
-      players: players_l,
+      players: this.tools.construct_players(n_players),
       turn: 0,
       gameover: false,
     }
-    
     this.onupdate = () => {}
     this.onplay = () => {}
     this.moves = [-1,1,2]
@@ -23,14 +18,9 @@ export default class Engine{
 
 
   // HELPER PRIVATE METHODS
-  sleep = ms => new Promise(resolve => setTimeout(() => {resolve()}, ms));
-  getRandomInt = max => Math.floor(Math.random() * max); // max not inclusive
-  mod = (n,m) => ((n % m) + m) % m
-  generate_play = () => this.moves[this.getRandomInt(this.moves.length)]
-
   update(new_state) {
     this.onupdate(new_state)
-    this.gamestate = new_state    
+    this.gamestate = new_state
   }
   update_plays(id,play) {
     this.onplay(id,play)
@@ -52,27 +42,29 @@ export default class Engine{
 
   }
 
-  waitplay = turn => new Promise(async resolve => {
-    let ms = 0
-    let play = 0
-    let id = this.gamestate.players[turn]
-    while (play == 0 & ms < 500) {
-      // AI always plays after half the time allowed
-      if (ms > 250 & id != 0) {
-        this.play(turn, this.generate_play())
+  waitplay(turn) {
+    return new Promise(async resolve => {
+      let ms = 0
+      let play = 0
+      let id = this.gamestate.players[turn]
+      while (play == 0 & ms < 500) {
+        // AI always plays after half the time allowed
+        if (ms > 250 & id != 0) {
+          this.play(turn, this.tools.generate_play(this.moves))
+        }
+        // CHECK for play recorded in gamestate. Reset to false if found
+        if (this.plays[id] != 0) {
+          play = this.plays[id]
+          this.plays = {...this.plays, [id] : 0}
+        }
+        // Wait one ms and continue
+        await this.tools.sleep(1)
+        ms = ms + 1
       }
-      // CHECK for play recorded in gamestate. Reset to false if found
-      if (this.plays[id] != 0) {
-        play = this.plays[id]
-        this.plays = {...this.plays, [id] : 0}
-      }
-      // Wait one ms and continue
-      await this.sleep(1)
-      ms = ms + 1
-    }
-    // After time allowed is done, return whether player has player or not
-    resolve(play) 
-  })
+      // After time allowed is done, return whether player has player or not
+      resolve(play)
+    })
+  }
   
   async start() {
     console.log('Game started')
@@ -80,7 +72,7 @@ export default class Engine{
     // Start game loop
     let curr_play = 1
     while (this.gamestate.gameover == false) {
-      let new_turn = this.mod(this.gamestate.turn + curr_play, this.gamestate.n_players)
+      let new_turn = this.tools.mod(this.gamestate.turn + curr_play, this.gamestate.n_players)
       this.update({...this.gamestate, turn: new_turn})
       // Wait for play
       curr_play = await this.waitplay(this.gamestate.turn)
