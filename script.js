@@ -16,8 +16,8 @@ const keys = {
 }
 // UI HANDLERS
 function update_UI (state) {
-  if (state.gameover == true) {
-    gamestate.innerHTML = 'GAMEOVER!'
+  if (state.gamepaused == true) {
+    gamestate.innerHTML = 'GAME PAUSED!'
   } else{
     gamestate.innerHTML = state.turn.toString()
   }

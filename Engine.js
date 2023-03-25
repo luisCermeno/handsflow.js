@@ -9,6 +9,7 @@ export default class Engine{
       n_players: n_players,
       players: this.tools.construct_players(n_players),
       turn: 0,
+      gamepaused: true,
       gameover: false,
     }
     this.waittime = 1000
@@ -36,27 +37,32 @@ export default class Engine{
 
   // PUBLIC METHODS
   play(id, play) {
-    // Ignore the play if game is over
-    if (this.gamestate.gameover == true) {
-      return
-    }
     // Log the play
     this.update_plays(id,play)
     // Check for wrongplay
     if (play == null || this.gamestate.turn != id) {
-      this.update({...this.gamestate, gameover: true}) // todo: remove player
+      this.update({...this.gamestate, gamepaused: true}) // todo: remove player
     }
     
   }
 
-  listen_play(turn) {
+  request_play(turn) {
     return new Promise(async resolve => {
+      var move = await this.listen_play(turn, this.waittime * 10)
+      this.update({...this.gamestate, gamepaused: false})
+      resolve(move)
+    })
+  }
+
+  listen_play(turn, wait) {
+    return new Promise(async resolve => {
+      console.log(`Listening for play from index: ${turn}`)
       let ms = 0
       let move = 0
       // Get expected player's id. 
       let id = this.gamestate.players[turn]
-      // Check every millisecond until waittime.
-      while (move == 0 & ms < this.waittime) {
+      // Check every millisecond until wait time.
+      while (move == 0 & ms < wait) {
         // If play was recorded in gamestate, player has played!
         if (this.plays[id] != 0) {
           // Save the move before resetting
@@ -76,15 +82,19 @@ export default class Engine{
   async start() {
     console.log('Game started')
     // Start game loop
-    let curr_play = 1
+    // Request play to the first alive player (at index 0)
     while (this.gamestate.gameover == false) {
-      let new_turn = this.tools.mod(this.gamestate.turn + curr_play, this.gamestate.n_players)
-      this.update({...this.gamestate, turn: new_turn})
-      // Listen for next play for {waittime} milliseconds
-      curr_play = await this.listen_play(this.gamestate.turn)
-      // After waiting for play, go to next round or remove player and pause the game.
-      if (curr_play == 0) {
-        this.update({...this.gamestate, gameover: true}) // todo: remove player
+      let curr_play = await this.request_play(this.gamestate.turn)
+      while (this.gamestate.gamepaused == false) {
+        // If play was not recorded, TODO: kill the player
+        if (curr_play == 0) {
+          this.update({...this.gamestate, turn: 0, gamepaused: true}) // todo: remove player
+          break
+        }
+        let new_turn = this.tools.mod(this.gamestate.turn + curr_play, this.gamestate.n_players)
+        this.update({...this.gamestate, turn: new_turn})
+        // Listen for next play for {waittime} milliseconds
+        curr_play = await this.listen_play(this.gamestate.turn, this.waittime)
       }
     }
   }
