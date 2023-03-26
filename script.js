@@ -16,11 +16,21 @@ const keys = {
 }
 // UI HANDLERS
 function update_UI (state) {
+  let ui = ''
   if (state.gamepaused == true) {
-    gamestate.innerHTML = 'GAME PAUSED!'
+    ui = 'GAME PAUSED!'
   } else{
-    gamestate.innerHTML = state.index.toString()
+    let index = state.index
+    let players = state.players
+    for(const i in players){
+      if (i == index) {
+        ui += `<b>${players[i]}</b>, `
+      } else{
+        ui += `${players[i]}, `
+      }
+    }
   }
+  gamestate.innerHTML = ui
   
 }
 

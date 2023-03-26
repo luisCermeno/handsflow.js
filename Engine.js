@@ -98,6 +98,7 @@ export default class Engine{
         // Listen for next play for {waittime} milliseconds
         curr_play = await this.listen_play(this.gamestate.index, this.waittime)
       }
+      // TODO: REMOVE PLAYER AT THE LAST TURN
       this.pause()
     }
   }
