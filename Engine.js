@@ -137,9 +137,10 @@ export default class Engine{
         // Listen for next play for {waittime} milliseconds (TODO: Handle concurrency bug. Unexpected play should interrupt this promise)
         let id = this.gamestate.players[this.gamestate.index]
         let response = await this.listen_play(id , this.waittime)
+        play = response.play
         // Second play judge: Handle missing play. (Only if player was not interrupted).
         if (response.interrupted == false) {
-          this.judge(id,response.play)
+          this.judge(id,play)
         }
         else {
           console.log(`Player ${id} was interrupted. Dont judge him!`)
