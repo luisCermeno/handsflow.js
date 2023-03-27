@@ -10,7 +10,7 @@ export default class Bot{
   async listen_state(new_state){
     // If its bot's turn, disptach play.
     if (new_state.request_id == null & new_state.players[new_state.index] == this.id) {
-      console.log(`Bot ${this.id} says: my turn!`)
+      console.log(`BOT ${this.id}: My turn!`)
       // Get a random delay time to simulate human doubt behaviour.
       var delay = this.tools.randint(this.game.waittime / 4 , this.game.waittime)
       // Wait half the waiting time before plays

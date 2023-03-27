@@ -71,6 +71,7 @@ export default class Engine{
   play(id, play) {
     // Only consider the play if game is not paused OR if its been requested.
     if ((this.gamestate.request_id == null) || (this.gamestate.request_id == id)) {
+      console.log(`PLAY: Player ${id} played *${play}*!`)
       // Record and dispatch the play
       this.update_plays(id,play)
       // First play judge: Handles wrong play and wrong turn
@@ -93,7 +94,7 @@ export default class Engine{
 
   listen_play(id, wait) {
     return new Promise(async resolve => {
-      console.log(`Listening for player with id: ${id}`)
+      console.log(`LISTENING: Waiting for Player ${id} to play...`)
       let ms = 0
       let play = 0
       let interrupted = false
@@ -124,7 +125,7 @@ export default class Engine{
   }
   
   async start() {
-    console.log('Game started')
+    console.log('Game Started')
     // Start game loop
     // Request play to the first alive player (at index 0)
     while (this.gamestate.gameover == false) {
