@@ -17,8 +17,8 @@ const keys = {
 // UI HANDLERS
 function update_UI (state) {
   let ui = ''
-  if (state.gamepaused == true) {
-    ui = 'GAME PAUSED!'
+  if (state.request_id != null) {
+    ui = `Waiting for player ${state.request_id} to kick off the round!`
   } else{
     let index = state.index
     let players = state.players

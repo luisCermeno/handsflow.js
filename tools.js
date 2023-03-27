@@ -12,7 +12,7 @@ export default class Tools{
   construct_plays = (n_players) => {
     var plays_obj = {}
     for(let i = 0; i < n_players; i++){
-      plays_obj[i] = false
+      plays_obj[i] = 0
     }
     return plays_obj
   }
