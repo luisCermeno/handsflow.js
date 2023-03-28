@@ -1,10 +1,9 @@
 import Tools from './tools.js'
-
+import Record from './Record.js'
 export default class Engine{
   // CONSTRUCTOR
   constructor(n_players, waittime){
     this.tools = new Tools() // tools library
-    this.plays = this.tools.construct_plays(n_players) // plays record {id: play (0,-1,2)}
     this.gamestate = {
       n_players: n_players, // number of alive players in table
       table: this.tools.construct_table(n_players), // [deque of alive player ids]
@@ -12,6 +11,7 @@ export default class Engine{
       gameover: false,
       request_id: 0, // if not null, game is requesting for a play to continue.
     }
+    this.plays = new Record(this.gamestate.table) // plays record {id: play (0,-1,2)}
     this.waittime = waittime // time given to react on turn.
     this.bots = this.tools.construct_bots(n_players, this)
     this.moves = [-1,1,2] // allowed moves.
@@ -35,15 +35,9 @@ export default class Engine{
   }
   update_plays(id,play) {
     // Record play
-    this.plays = {...this.plays, [id]: play}
+    this.plays.record(id,play)
     // Dispatch update to client
     this.onplay(id,play)
-  }
-  reset_plays() {
-    // Set all active plays to 0.
-    for (const id in this.plays) {
-      this.plays[id] = null
-    }
   }
   is_paused = () => this.gamestate.request_id != null
   pause(){
@@ -55,7 +49,6 @@ export default class Engine{
     // Unpause the game and unset current play request_id.
     this.update({...this.gamestate,  request_id: null})
   }
-  has_played = (id) => this.plays[id] != null
   valid_play(play) {
     // Validate a play
     return (play != null) & (play != 0)
@@ -109,11 +102,9 @@ export default class Engine{
           break
         }
         // 2. Player plays , a play is found in record.
-        if (this.has_played(id)) {
+        if (this.plays.has(id)) {
           // Construct response
-          response.play = this.plays[id]
-          // Reset the play record.
-          this.plays = {...this.plays, [id] : null}
+          response.play = this.plays.use(id)
           break
         }
         await this.tools.sleep(1)
@@ -129,7 +120,7 @@ export default class Engine{
     // Start game loop
     while (this.gamestate.gameover == false) {
       // Clear plays record between rounds
-      this.reset_plays()
+      this.plays.reset()
       // Request kick off play.
       let response = await this.request_play(this.gamestate.request_id)
       // Start round loop

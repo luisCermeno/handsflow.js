@@ -1,23 +1,26 @@
 export default class Record{
   constructor(ids) {
     // Construct mp {id: last play}
-    var mp = {}
+    this.mp = {}
     for(const id in ids){
-      mp[id] = null
+      this.mp[id] = null
     }
   }
   // Returns true if a play of record is found
-  has_played = (id) => this.plays[id] != null
+  has = (id) => this.mp[id] != null
   // Returns the play of a player and clears it
-  use_play(id) {
-    play = this.plays[id]
-    this.plays[id] = null
+  use(id) {
+    let play = this.mp[id]
+    this.mp[id] = null
     return play
+  }
+  record(id, play) {
+    this.mp[id] = play
   }
   reset() {
     // Reset all plays to 0.
-    for (const id in this.plays) {
-      this.plays[id] = null
+    for (const id in this.mp) {
+      this.mp[id] = null
     }
   }
 }
