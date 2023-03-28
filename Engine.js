@@ -10,6 +10,7 @@ export default class Engine{
       index: 0, // current turn (index in table)
       gameover: false,
       request_id: 0, // if not null, game is requesting for a play to continue.
+      loading: true,
     }
     this.plays = new Record(this.gamestate.table) // plays record {id: play (0,-1,2)}
     this.waittime = waittime // time given to react on turn.
@@ -37,7 +38,7 @@ export default class Engine{
   pause(){
     // Pause the game and set a new play request_id.
     var request_index = 0
-    this.update({...this.gamestate, index: request_index, request_id: this.gamestate.table[request_index]}) // todo: remove player
+    this.update({...this.gamestate, loading: true, index: request_index, request_id: this.gamestate.table[request_index]}) // todo: remove player
   }
   unpause(){
     // Unpause the game and unset current play request_id.
@@ -49,10 +50,17 @@ export default class Engine{
       this.pause()
     }
   }
+  async buffer(ms){
+    console.log('Loading...')
+    await Tools.sleep(ms)
+    console.log('Load finished!')
+    this.update({...this.gamestate, loading:false})
+  }
+
   request_play(id) {
     return new Promise(async resolve => {
       var response = null
-      // Freeze the game until requested player has made a valid play.
+      // Do not return until requested player has made a valid play.
       while (response == null || !Tools.valid_play(response.play)) {
         var response = await this.listen_play(id, this.waittime)
       }
@@ -67,6 +75,10 @@ export default class Engine{
   // ******** PUBLIC METHODS ****************
   // ****************************************
   play(id, play) {
+    if (this.gamestate.loading) {
+      console.log('LOADING: Plays on loading not allowed!')
+      return
+    }
     // Only consider the play if game is not paused OR if its been requested.
     if (!(this.is_paused()) || (this.gamestate.request_id == id)) {
       console.log(`PLAY: Player ${id} played *${play}*!`)
@@ -110,6 +122,8 @@ export default class Engine{
     while (this.gamestate.gameover == false) {
       // Clear plays record between rounds
       this.plays.reset()
+      // Loading time between rounds.
+      await this.buffer(2000)
       // Request kick off play.
       let response = await this.request_play(this.gamestate.request_id)
       // Start round loop

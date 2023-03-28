@@ -17,8 +17,11 @@ const keys = {
 // UI HANDLERS
 function update_UI (state) {
   let ui = ''
-  if (state.request_id != null) {
-    ui = `Waiting for player ${state.request_id} to kick off the round!`
+  if (state.loading) {
+    ui = 'Loading...'
+  }
+  else if (state.request_id != null) {
+    ui = `Player ${state.request_id} starts the round!`
   } else{
     let index = state.index
     let table = state.table
