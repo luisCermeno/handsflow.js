@@ -9,7 +9,7 @@ export default class Record{
   // Returns true if a play of record is found
   has = (id) => this.mp[id] != null
   // Returns the play of a player and clears it
-  use(id) {
+  get(id) {
     let play = this.mp[id]
     this.mp[id] = null
     return play

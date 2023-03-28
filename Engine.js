@@ -1,19 +1,19 @@
 import Tools from './tools.js'
 import Record from './Record.js'
+import Bot from './Bot.js'
+
 export default class Engine{
-  // CONSTRUCTOR
   constructor(n_players, waittime){
-    this.tools = new Tools() // tools library
     this.gamestate = {
       n_players: n_players, // number of alive players in table
-      table: this.tools.construct_table(n_players), // [deque of alive player ids]
+      table: Tools.create_table(n_players), // [deque of alive player ids]
       index: 0, // current turn (index in table)
       gameover: false,
       request_id: 0, // if not null, game is requesting for a play to continue.
     }
     this.plays = new Record(this.gamestate.table) // plays record {id: play (0,-1,2)}
     this.waittime = waittime // time given to react on turn.
-    this.bots = this.tools.construct_bots(n_players, this)
+    this.bots = Bot.spawn(n_players, this)
     this.moves = [-1,1,2] // allowed moves.
     this.onupdate = () => {} // client dispatcher on gamestate change
     this.onplay = () => {} // client dispatcher on plays change
@@ -33,12 +33,6 @@ export default class Engine{
     }
 
   }
-  update_plays(id,play) {
-    // Record play
-    this.plays.record(id,play)
-    // Dispatch update to client
-    this.onplay(id,play)
-  }
   is_paused = () => this.gamestate.request_id != null
   pause(){
     // Pause the game and set a new play request_id.
@@ -49,15 +43,24 @@ export default class Engine{
     // Unpause the game and unset current play request_id.
     this.update({...this.gamestate,  request_id: null})
   }
-  valid_play(play) {
-    // Validate a play
-    return (play != null) & (play != 0)
-  }
   judge(id,play){
     // Pause the game if play is invalid (missing or wrong key) or not in not correct turn
-    if (!this.valid_play(play) || this.gamestate.table[this.gamestate.index] != id){
+    if (!Tools.valid_play(play) || this.gamestate.table[this.gamestate.index] != id){
       this.pause()
     }
+  }
+  request_play(id) {
+    return new Promise(async resolve => {
+      var response = null
+      // Freeze the game until requested player has made a valid play.
+      while (response == null || !Tools.valid_play(response.play)) {
+        var response = await this.listen_play(id, this.waittime)
+      }
+      // Resolve promise with a guaranteed valid play in response. 
+      resolve(response)
+      // Unpause the game
+      this.unpause()
+    })
   }
 
   // ****************************************
@@ -68,24 +71,11 @@ export default class Engine{
     if (!(this.is_paused()) || (this.gamestate.request_id == id)) {
       console.log(`PLAY: Player ${id} played *${play}*!`)
       // Record and dispatch the play
-      this.update_plays(id,play)
+      this.plays.record(id,play)
+      this.onplay(id,play)
       // First play judge: Handles wrong play and wrong turn
       this.judge(id,play)
     }
-  }
-
-  request_play(id) {
-    return new Promise(async resolve => {
-      var response = null
-      // Freeze the game until requested player has made a valid play.
-      while (response == null || !this.valid_play(response.play)) {
-        var response = await this.listen_play(id, this.waittime)
-      }
-      // Resolve promise with a guaranteed valid play in response. 
-      resolve(response)
-      // Unpause the game
-      this.unpause()
-    })
   }
 
   listen_play(id, wait) {
@@ -101,13 +91,12 @@ export default class Engine{
           response.interrupted = true
           break
         }
-        // 2. Player plays , a play is found in record.
+        // 2. Player plays , as play is found in record.
         if (this.plays.has(id)) {
-          // Construct response
-          response.play = this.plays.use(id)
+          response.play = this.plays.get(id)
           break
         }
-        await this.tools.sleep(1)
+        await Tools.sleep(1)
         ms = ms + 1
       }
       // Resolve promise with the concluded response.
@@ -125,7 +114,7 @@ export default class Engine{
       let response = await this.request_play(this.gamestate.request_id)
       // Start round loop
       while (!this.is_paused()) {
-        let next_index = this.tools.mod(this.gamestate.index + response.play, this.gamestate.n_players)
+        let next_index = Tools.mod(this.gamestate.index + response.play, this.gamestate.n_players)
         this.update({...this.gamestate, index: next_index})
         // Listen for next play for {waittime} milliseconds (TODO: Handle concurrency bug. Unexpected play should interrupt this promise)
         let id = this.gamestate.table[this.gamestate.index]
