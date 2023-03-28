@@ -1,4 +1,4 @@
-import Tools from './tools.js'
+import Tools from './Tools.js'
 import Record from './Record.js'
 import Bot from './Bot.js'
 

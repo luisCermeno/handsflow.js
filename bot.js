@@ -1,4 +1,4 @@
-import Tools from './tools.js'
+import Tools from './Tools.js'
 
 export default class Bot{
   static spawn = (n_players, game) => {
