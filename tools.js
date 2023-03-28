@@ -12,16 +12,16 @@ export default class Tools{
   construct_plays = (n_players) => {
     var plays_obj = {}
     for(let i = 0; i < n_players; i++){
-      plays_obj[i] = 0
+      plays_obj[i] = null
     }
     return plays_obj
   }
-  construct_players = (n_players) => {
-    var players_l = []
+  construct_table = (n_players) => {
+    var table = []
     for(let id = 0; id < n_players; id++){
-      players_l.push(id)
+      table.push(id)
     }
-    return players_l
+    return table
   }
   construct_bots = (n_players, game) => {
     var bots = {}

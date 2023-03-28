@@ -21,12 +21,12 @@ function update_UI (state) {
     ui = `Waiting for player ${state.request_id} to kick off the round!`
   } else{
     let index = state.index
-    let players = state.players
-    for(const i in players){
+    let table = state.table
+    for(const i in table){
       if (i == index) {
-        ui += `<b>${players[i]}</b>, `
+        ui += `<b>${table[i]}</b>, `
       } else{
-        ui += `${players[i]}, `
+        ui += `${table[i]}, `
       }
     }
   }

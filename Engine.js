@@ -3,20 +3,20 @@ import Tools from './tools.js'
 export default class Engine{
   // CONSTRUCTOR
   constructor(n_players, waittime){
-    this.tools = new Tools()
-    this.plays = this.tools.construct_plays(n_players) // {id: play (0,-1,2)}
+    this.tools = new Tools() // tools library
+    this.plays = this.tools.construct_plays(n_players) // plays record {id: play (0,-1,2)}
     this.gamestate = {
-      n_players: n_players, // number of alive players
-      players: this.tools.construct_players(n_players), // [deque of alive ids]
-      index: 0, // index in which curr turn is
+      n_players: n_players, // number of alive players in table
+      table: this.tools.construct_table(n_players), // [deque of alive player ids]
+      index: 0, // current turn (index in table)
       gameover: false,
-      request_id: 0,
+      request_id: 0, // if not null, game is requesting for a play to continue.
     }
-    this.waittime = waittime
+    this.waittime = waittime // time given to react on turn.
     this.bots = this.tools.construct_bots(n_players, this)
-    this.moves = [-1,1,2]
-    this.onupdate = () => {}
-    this.onplay = () => {}
+    this.moves = [-1,1,2] // allowed moves.
+    this.onupdate = () => {} // client dispatcher on gamestate change
+    this.onplay = () => {} // client dispatcher on plays change
   }
 
   // ****************************************
@@ -34,7 +34,7 @@ export default class Engine{
 
   }
   update_plays(id,play) {
-    // Update plays
+    // Record play
     this.plays = {...this.plays, [id]: play}
     // Dispatch update to client
     this.onplay(id,play)
@@ -42,25 +42,27 @@ export default class Engine{
   reset_plays() {
     // Set all active plays to 0.
     for (const id in this.plays) {
-      this.plays[id] = 0
+      this.plays[id] = null
     }
   }
+  is_paused = () => this.gamestate.request_id != null
   pause(){
     // Pause the game and set a new play request_id.
     var request_index = 0
-    this.update({...this.gamestate, index: request_index, request_id: this.gamestate.players[request_index]}) // todo: remove player
+    this.update({...this.gamestate, index: request_index, request_id: this.gamestate.table[request_index]}) // todo: remove player
   }
   unpause(){
     // Unpause the game and unset current play request_id.
     this.update({...this.gamestate,  request_id: null})
   }
+  has_played = (id) => this.plays[id] != null
   valid_play(play) {
     // Validate a play
     return (play != null) & (play != 0)
   }
   judge(id,play){
-    // Pause the game if play is invalid or not in not correct turn
-    if (!this.valid_play(play) || this.gamestate.players[this.gamestate.index] != id){
+    // Pause the game if play is invalid (missing or wrong key) or not in not correct turn
+    if (!this.valid_play(play) || this.gamestate.table[this.gamestate.index] != id){
       this.pause()
     }
   }
@@ -70,7 +72,7 @@ export default class Engine{
   // ****************************************
   play(id, play) {
     // Only consider the play if game is not paused OR if its been requested.
-    if ((this.gamestate.request_id == null) || (this.gamestate.request_id == id)) {
+    if (!(this.is_paused()) || (this.gamestate.request_id == id)) {
       console.log(`PLAY: Player ${id} played *${play}*!`)
       // Record and dispatch the play
       this.update_plays(id,play)
@@ -81,13 +83,14 @@ export default class Engine{
 
   request_play(id) {
     return new Promise(async resolve => {
-      this.reset_plays()
-      var play = null
-      while (!this.valid_play(play)) {
+      var response = null
+      // Freeze the game until requested player has made a valid play.
+      while (response == null || !this.valid_play(response.play)) {
         var response = await this.listen_play(id, this.waittime)
-        play = response.play
       }
-      resolve(play)
+      // Resolve promise with a guaranteed valid play in response. 
+      resolve(response)
+      // Unpause the game
       this.unpause()
     })
   }
@@ -96,51 +99,49 @@ export default class Engine{
     return new Promise(async resolve => {
       console.log(`LISTENING: Waiting for Player ${id} to play...`)
       let ms = 0
-      let play = 0
-      let interrupted = false
-      // Get expected player's id. 
-      // Check for a play every millisecond until:
-      // - Play is recorded.
-      // - Game has paused and its waiting for another player.
-      while (play == 0 & ms < wait) {
-        // If an interruption occurs before player can play, break inmediately.
-        if (this.gamestate.request_id != null & this.gamestate.request_id != id) {
-          interrupted = true
+      let response = {interrupted: false, play: null}
+      // Check every millisecond until {wait} ms has passed
+      while (ms < wait) {
+        // Break and resolve as soon as:
+        // 1. An interruption occurs before player can play.
+        if (this.is_paused() & this.gamestate.request_id != id) {
+          response.interrupted = true
           break
         }
-        // If play was recorded in gamestate, player has played!
-        if (this.plays[id] != 0) {
-          // Save the play before resetting
-          play = this.plays[id]
-          // Reset the state
-          this.plays = {...this.plays, [id] : 0}
+        // 2. Player plays , a play is found in record.
+        if (this.has_played(id)) {
+          // Construct response
+          response.play = this.plays[id]
+          // Reset the play record.
+          this.plays = {...this.plays, [id] : null}
+          break
         }
-        // Wait one ms before next check
         await this.tools.sleep(1)
         ms = ms + 1
       }
-      // Return the played play. (0 if no play recorded.)
-      resolve({interrupted: interrupted, play: play})
+      // Resolve promise with the concluded response.
+      resolve(response)
     })
   }
   
   async start() {
     console.log('Game Started')
     // Start game loop
-    // Request play to the first alive player (at index 0)
     while (this.gamestate.gameover == false) {
-      // Request kick off play after a pause or at start.
-      let play = await this.request_play(this.gamestate.request_id)
-      while (this.gamestate.request_id == null) {
-        let next_index = this.tools.mod(this.gamestate.index + play, this.gamestate.n_players)
+      // Clear plays record between rounds
+      this.reset_plays()
+      // Request kick off play.
+      let response = await this.request_play(this.gamestate.request_id)
+      // Start round loop
+      while (!this.is_paused()) {
+        let next_index = this.tools.mod(this.gamestate.index + response.play, this.gamestate.n_players)
         this.update({...this.gamestate, index: next_index})
         // Listen for next play for {waittime} milliseconds (TODO: Handle concurrency bug. Unexpected play should interrupt this promise)
-        let id = this.gamestate.players[this.gamestate.index]
-        let response = await this.listen_play(id , this.waittime)
-        play = response.play
+        let id = this.gamestate.table[this.gamestate.index]
+        response = await this.listen_play(id , this.waittime)
         // Second play judge: Handle missing play. (Only if player was not interrupted).
         if (response.interrupted == false) {
-          this.judge(id,play)
+          this.judge(id,response.play)
         }
         else {
           console.log(`Player ${id} was interrupted. Dont judge him!`)
