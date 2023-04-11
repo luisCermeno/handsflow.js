@@ -60,14 +60,12 @@ export default class Engine{
   request_play(id) {
     return new Promise(async resolve => {
       var response = null
-      // Do not return until requested player has made a valid play.
-      while (response == null || !Tools.valid_play(response.play)) {
+      // Do not return until requested player has made a play, even if invalid.
+      while (response == null) {
         var response = await this.listen_play(id, this.waittime)
       }
-      // Resolve promise with a guaranteed valid play in response. 
+      // Resolve promise with the play.
       resolve(response)
-      // Unpause the game
-      this.unpause()
     })
   }
 
@@ -126,6 +124,10 @@ export default class Engine{
       await this.buffer(2000)
       // Request kick off play.
       let response = await this.request_play(this.gamestate.request_id)
+      // Only unpause after checking play is valid.
+      if (Tools.valid_play(response.play)) {
+        this.unpause()
+      }
       // Start round loop
       while (!this.is_paused()) {
         let next_index = Tools.mod(this.gamestate.index + response.play, this.gamestate.n_players)
