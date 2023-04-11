@@ -11,6 +11,7 @@ export default class Engine{
       gameover: false,
       request_id: 0, // if not null, game is requesting for a play to continue.
       loading: true,
+      sentenced: null,
     }
     this.plays = new Record(this.gamestate.table) // plays record {id: play (0,-1,2)}
     this.waittime = waittime // time given to react on turn.
@@ -45,15 +46,34 @@ export default class Engine{
     this.update({...this.gamestate,  request_id: null})
   }
   judge(id,play){
-    // Pause the game if play is invalid (missing or wrong key) or not in not correct turn
+    // If play is invalid (missing or wrong key) or not in not correct turn
     if (!Tools.valid_play(play) || this.gamestate.table[this.gamestate.index] != id){
+      // Sentence the player
+      this.update({...this.gamestate,  sentenced: id})
+      // Pause the game
       this.pause()
     }
   }
+
+  // TODO
+  kill(id) {
+    console.log(`KILLING PLAYER ${id}`)
+    return
+    // 1. Remove from table
+    // 2. Decrease player counter
+    // 3. Dispatch the elimination to client.
+    // 4. Define a new request_id counter.
+  }
+
   async buffer(ms){
     console.log('Loading...')
     // Clear plays record between rounds
     this.plays.reset()
+    // Kill the sentenced player, if there is any
+    if (this.gamestate.sentenced != null) {
+      this.kill(this.gamestate.sentenced)
+      this.update({...this.gamestate,  sentenced: null})
+    }
     // Buffer time
     await Tools.sleep(ms)
     console.log('Load finished!')
