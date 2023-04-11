@@ -4,6 +4,7 @@ import Engine from './engine.js'
 const gamestate = document.querySelector('.gamestate')
 const log = document.querySelector('.log')
 const moves = {
+  0: 'No Play!',
   1: 'Forward!',
   [-1]: 'Reverse!',
   2: 'Skip!',
@@ -21,7 +22,7 @@ function update_UI (state) {
     ui = 'Loading...'
   }
   else if (state.request_id != null) {
-    ui = `Player ${state.request_id} starts the round!`
+    ui = `Player ${state.request_id} starts the round! <br><br> Press S: Skip , F: Forward or R: Reverse!`
   } else{
     let index = state.index
     let table = state.table

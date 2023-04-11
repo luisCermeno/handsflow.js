@@ -52,6 +52,9 @@ export default class Engine{
   }
   async buffer(ms){
     console.log('Loading...')
+    // Clear plays record between rounds
+    this.plays.reset()
+    // Buffer time
     await Tools.sleep(ms)
     console.log('Load finished!')
     this.update({...this.gamestate, loading:false})
@@ -83,7 +86,7 @@ export default class Engine{
       // Record and dispatch the play
       this.plays.record(id,play)
       this.onplay(id,play)
-      // First play judge: Handles wrong play and wrong turn
+      // Judge from invalid or missing play.
       this.judge(id,play)
     }
   }
@@ -92,7 +95,7 @@ export default class Engine{
     return new Promise(async resolve => {
       console.log(`LISTENING: Waiting for Player ${id} to play...`)
       let ms = 0
-      let response = {interrupted: false, play: null}
+      let response = {interrupted: false, play: 0} // default: {no interruption and missing play}
       // Check every millisecond until {wait} ms has passed
       while (ms < wait) {
         // Break and resolve as soon as:
@@ -106,6 +109,10 @@ export default class Engine{
           response.play = this.plays.get(id)
           break
         }
+        // 3. In the last second: Force the player play the missing play
+        if (ms == wait - 1) {
+          this.play(id, 0)
+        }
         await Tools.sleep(1)
         ms = ms + 1
       }
@@ -118,8 +125,6 @@ export default class Engine{
     console.log('Game Started')
     // Start game loop
     while (this.gamestate.gameover == false) {
-      // Clear plays record between rounds
-      this.plays.reset()
       // Loading time between rounds.
       await this.buffer(2000)
       // Request kick off play.
@@ -135,13 +140,9 @@ export default class Engine{
         // Listen for next play for {waittime} milliseconds (TODO: Handle concurrency bug. Unexpected play should interrupt this promise)
         let id = this.gamestate.table[this.gamestate.index]
         response = await this.listen_play(id , this.waittime)
-        // Second play judge: Handle missing play. (Only if player was not interrupted).
-        if (response.interrupted == false) {
-          this.judge(id,response.play)
-        }
-        else {
-          console.log(`Player ${id} was interrupted. Dont judge him!`)
-        }
+        // At the end of any round, a play always happens regardless of whether it is a valid, invalid, missing, interruption play.
+        // Thus, the play method is always called and therefore the judge method is always called.
+        // The judge method will determine whether the round loop continues by pausing or unpausing the game.
       }
     }
   }
